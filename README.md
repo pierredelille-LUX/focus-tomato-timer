@@ -13,3 +13,5 @@ python3 -m http.server 5173
 ## 部署
 
 项目是纯静态文件，可直接用 GitHub Pages 从 `main` 分支根目录发布。
+
+公开测试链接：https://pierredelille-lux.github.io/focus-tomato-timer/
