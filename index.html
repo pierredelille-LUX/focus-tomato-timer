@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="一个可在浏览器本地使用的番茄工作法计时应用，支持任务记录、工作/休息循环和自定义时长。"
+    />
+    <title>番茄专注钟</title>
+    <link rel="preload" href="assets/focus-desk.webp" as="image" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="timer-surface" aria-labelledby="appTitle">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Pomodoro Focus</p>
+            <h1 id="appTitle">番茄专注钟</h1>
+          </div>
+          <div class="status-pill" id="statusPill" aria-live="polite">
+            准备开始
+          </div>
+        </header>
+
+        <div class="mode-tabs" role="tablist" aria-label="计时模式">
+          <button
+            class="mode-tab is-active"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            data-mode="work"
+          >
+            <i data-lucide="timer" aria-hidden="true"></i>
+            <span>工作</span>
+          </button>
+          <button
+            class="mode-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            data-mode="shortBreak"
+          >
+            <i data-lucide="coffee" aria-hidden="true"></i>
+            <span>短休息</span>
+          </button>
+          <button
+            class="mode-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            data-mode="longBreak"
+          >
+            <i data-lucide="leaf" aria-hidden="true"></i>
+            <span>长休息</span>
+          </button>
+        </div>
+
+        <div class="timer-ring" id="timerRing" aria-live="polite">
+          <div class="timer-core">
+            <div class="mode-label" id="modeLabel">工作时间</div>
+            <div class="time-readout" id="timeReadout">25:00</div>
+            <div class="current-task" id="currentTask">选择任务后开始专注</div>
+          </div>
+        </div>
+
+        <label class="task-field" for="taskInput">
+          <span>当前任务</span>
+          <input
+            id="taskInput"
+            type="text"
+            maxlength="80"
+            autocomplete="off"
+            placeholder="例如：整理项目计划"
+          />
+        </label>
+
+        <div class="action-row">
+          <button class="button button-primary" id="primaryButton" type="button">
+            <i data-lucide="play" aria-hidden="true"></i>
+            <span>开始</span>
+          </button>
+          <button class="button button-secondary" id="stopButton" type="button" disabled>
+            <i data-lucide="square" aria-hidden="true"></i>
+            <span>停止</span>
+          </button>
+          <button class="button button-secondary" id="skipButton" type="button">
+            <i data-lucide="skip-forward" aria-hidden="true"></i>
+            <span>跳过</span>
+          </button>
+        </div>
+
+        <div class="stats-grid" aria-label="今日统计">
+          <div class="stat">
+            <span class="stat-value" id="todayCount">0</span>
+            <span class="stat-label">今日番茄</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="todayMinutes">0</span>
+            <span class="stat-label">专注分钟</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="roundCount">0</span>
+            <span class="stat-label">连续轮次</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="side-panel" aria-label="设置和记录">
+        <figure class="visual">
+          <img
+            src="assets/focus-desk.webp"
+            alt="桌面上的番茄计时器、笔记本和茶杯"
+          />
+        </figure>
+
+        <section class="side-section">
+          <div class="section-heading">
+            <i data-lucide="settings-2" aria-hidden="true"></i>
+            <h2>设置</h2>
+          </div>
+
+          <div class="setting-grid">
+            <label>
+              <span>工作时长</span>
+              <input id="workMinutes" type="number" min="1" max="180" step="1" />
+            </label>
+            <label>
+              <span>短休息</span>
+              <input id="shortMinutes" type="number" min="1" max="60" step="1" />
+            </label>
+            <label>
+              <span>长休息</span>
+              <input id="longMinutes" type="number" min="1" max="120" step="1" />
+            </label>
+            <label>
+              <span>长休间隔</span>
+              <input id="longEvery" type="number" min="2" max="12" step="1" />
+            </label>
+          </div>
+
+          <label class="switch">
+            <input id="autoLoop" type="checkbox" />
+            <span class="switch-track" aria-hidden="true"></span>
+            <span>自动进入下一段</span>
+          </label>
+          <label class="switch">
+            <input id="soundEnabled" type="checkbox" />
+            <span class="switch-track" aria-hidden="true"></span>
+            <span>结束提示音</span>
+          </label>
+          <label class="switch">
+            <input id="notifyEnabled" type="checkbox" />
+            <span class="switch-track" aria-hidden="true"></span>
+            <span>桌面通知</span>
+          </label>
+        </section>
+
+        <section class="side-section">
+          <div class="section-heading">
+            <i data-lucide="list-checks" aria-hidden="true"></i>
+            <h2>番茄工作法</h2>
+          </div>
+          <ol class="method-list">
+            <li>选定一件要推进的任务。</li>
+            <li>用一段完整番茄时间只处理这件事。</li>
+            <li>完成后短休息，每四轮进入一次长休息。</li>
+          </ol>
+        </section>
+
+        <section class="side-section history-section">
+          <div class="section-heading split-heading">
+            <span class="heading-inline">
+              <i data-lucide="history" aria-hidden="true"></i>
+              <h2>任务记录</h2>
+            </span>
+            <button class="text-button" id="clearHistory" type="button">
+              <i data-lucide="trash-2" aria-hidden="true"></i>
+              <span>清空</span>
+            </button>
+          </div>
+          <ul class="history-list" id="historyList"></ul>
+        </section>
+      </aside>
+    </main>
+
+    <noscript>这个应用需要启用 JavaScript 才能运行计时器。</noscript>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
