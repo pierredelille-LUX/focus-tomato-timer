@@ -453,11 +453,28 @@ h1 {
   font-weight: 750;
 }
 
+.account-copy .account-id {
+  color: color-mix(in srgb, var(--teal), black 14%);
+}
+
 .sync-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 10px;
+}
+
+.google-button-host {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.google-button-host[hidden] {
+  display: none;
 }
 
 .account-button {

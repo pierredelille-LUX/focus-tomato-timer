@@ -12,7 +12,7 @@ python3 -m http.server 5173
 
 ## Google 账号同步
 
-应用支持使用 Google Identity Services 登录，并把设置和任务记录保存到 Google Drive 的 `appDataFolder` 隐藏应用数据目录。这个目录只给本应用使用，用户不会在普通 Drive 文件列表里看到这些数据。
+应用支持使用 Google Identity Services 的官方登录按钮登录。点击登录按钮后，用户可以选择 Google 账号；登录成功后应用会显示姓名、邮箱和 Google ID，并继续请求 Google Drive `appDataFolder` 权限，用于保存设置和任务记录。这个目录只给本应用使用，用户不会在普通 Drive 文件列表里看到这些数据。
 
 配置步骤：
 

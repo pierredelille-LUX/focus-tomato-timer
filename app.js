@@ -88,6 +88,8 @@
     accountAvatar: document.querySelector("#accountAvatar"),
     accountName: document.querySelector("#accountName"),
     accountEmail: document.querySelector("#accountEmail"),
+    accountId: document.querySelector("#accountId"),
+    googleButtonHost: document.querySelector("#googleButtonHost"),
     googleSignIn: document.querySelector("#googleSignIn"),
     syncNow: document.querySelector("#syncNow"),
     googleSignOut: document.querySelector("#googleSignOut"),
@@ -107,6 +109,7 @@
     syncStatus: "未登录",
     syncTone: "",
     retryCount: 0,
+    signInButtonRendered: false,
   };
   let audioContext;
   let tickerId;
@@ -357,7 +360,10 @@
       elements.accountAvatar.textContent = "G";
       elements.accountName.textContent = "需要配置 Google Client ID";
       elements.accountEmail.textContent = "当前仅保存到此浏览器";
+      elements.accountId.hidden = true;
+      elements.googleButtonHost.hidden = true;
       elements.googleSignIn.disabled = true;
+      elements.googleSignIn.hidden = false;
       elements.googleSignIn.innerHTML =
         '<i data-lucide="lock-keyhole" aria-hidden="true"></i><span>未配置登录</span>';
       elements.syncNow.disabled = true;
@@ -372,7 +378,10 @@
       elements.accountAvatar.textContent = "G";
       elements.accountName.textContent = "Google 登录加载中";
       elements.accountEmail.textContent = "正在准备登录组件";
+      elements.accountId.hidden = true;
+      elements.googleButtonHost.hidden = true;
       elements.googleSignIn.disabled = true;
+      elements.googleSignIn.hidden = false;
       elements.googleSignIn.innerHTML =
         '<i data-lucide="loader-circle" aria-hidden="true"></i><span>加载中</span>';
       elements.syncNow.disabled = true;
@@ -386,32 +395,39 @@
       elements.accountAvatar.textContent = "G";
       elements.accountName.textContent = "本地记录";
       elements.accountEmail.textContent = "登录后同步到 Google Drive";
+      elements.accountId.hidden = true;
+      elements.googleButtonHost.hidden = false;
       elements.googleSignIn.disabled = false;
+      elements.googleSignIn.hidden = authState.signInButtonRendered;
       elements.googleSignIn.innerHTML =
         '<i data-lucide="log-in" aria-hidden="true"></i><span>使用 Google 登录</span>';
       elements.syncNow.disabled = true;
       elements.googleSignOut.hidden = true;
       elements.syncNote.textContent =
-        "会请求 Google 账号资料和 Drive appData 权限，用于保存这一个应用的设置和历史。";
+        "点击 Google 登录按钮后选择账号，并授权 Drive appData 用于保存设置和历史。";
       renderIcons();
       return;
     }
 
     elements.accountName.textContent = authState.user.name || "Google 用户";
     elements.accountEmail.textContent = authState.user.email || "已登录";
+    elements.accountId.textContent = authState.user.sub ? `Google ID: ${authState.user.sub}` : "";
+    elements.accountId.hidden = !authState.user.sub;
     if (authState.user.picture) {
       elements.accountAvatar.innerHTML = `<img src="${escapeHtml(authState.user.picture)}" alt="" />`;
     } else {
       elements.accountAvatar.textContent = getInitial(authState.user.name || authState.user.email);
     }
+    elements.googleButtonHost.hidden = true;
     elements.googleSignIn.disabled = authState.syncing;
+    elements.googleSignIn.hidden = false;
     elements.googleSignIn.innerHTML =
-      '<i data-lucide="key-round" aria-hidden="true"></i><span>重新授权</span>';
+      '<i data-lucide="key-round" aria-hidden="true"></i><span>授权同步</span>';
     elements.syncNow.disabled = authState.syncing || !authState.accessToken;
     elements.googleSignOut.hidden = false;
     elements.syncNote.textContent = authState.syncing
       ? "正在同步 Google Drive appData 中的专注记录。"
-      : "已登录。新增任务和设置修改会自动同步，也可以手动立即同步。";
+      : "已登录。设置和任务历史会与该 Google ID 关联并同步。";
     renderIcons();
   }
 
@@ -467,10 +483,15 @@
       return;
     }
 
-    if (window.google?.accounts?.oauth2) {
+    if (window.google?.accounts?.oauth2 && window.google?.accounts?.id) {
       authState.ready = true;
       authState.syncStatus = "未登录";
       authState.syncTone = "";
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleCredentialResponse,
+        cancel_on_tap_outside: true,
+      });
       authState.tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: googleClientId,
         scope: GOOGLE_SYNC_SCOPE,
@@ -481,6 +502,7 @@
           setSyncStatus("登录失败", "error");
         },
       });
+      renderGoogleSignInButton();
       renderAuth();
       return;
     }
@@ -494,6 +516,60 @@
     setTimeout(initGoogleAuth, 200);
   }
 
+  function renderGoogleSignInButton() {
+    if (authState.signInButtonRendered || !elements.googleButtonHost) {
+      return;
+    }
+
+    elements.googleButtonHost.innerHTML = "";
+    elements.googleButtonHost.hidden = false;
+    window.google.accounts.id.renderButton(elements.googleButtonHost, {
+      type: "standard",
+      theme: "outline",
+      size: "large",
+      text: "signin_with",
+      shape: "rectangular",
+      logo_alignment: "left",
+      width: 320,
+    });
+    authState.signInButtonRendered = true;
+  }
+
+  function handleCredentialResponse(response) {
+    if (!response?.credential) {
+      setSyncStatus("登录失败", "error");
+      return;
+    }
+
+    try {
+      const profile = decodeJwtPayload(response.credential);
+      authState.user = {
+        sub: profile.sub || "",
+        name: profile.name || profile.email || "Google 用户",
+        email: profile.email || "",
+        picture: profile.picture || "",
+      };
+      setSyncStatus("等待授权", "syncing");
+      requestGoogleAccessToken("consent");
+    } catch (error) {
+      console.error(error);
+      setSyncStatus("登录失败", "error");
+    }
+  }
+
+  function decodeJwtPayload(token) {
+    const payload = token.split(".")[1];
+    if (!payload) {
+      throw new Error("Google credential is missing a payload");
+    }
+
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+
   function signInWithGoogle() {
     if (!authState.configured || !authState.tokenClient) {
       setSyncStatus("未配置", "error");
@@ -501,8 +577,12 @@
     }
 
     setSyncStatus("等待授权", "syncing");
+    requestGoogleAccessToken(authState.accessToken ? "" : "consent");
+  }
+
+  function requestGoogleAccessToken(prompt) {
     authState.tokenClient.requestAccessToken({
-      prompt: authState.accessToken ? "" : "consent",
+      prompt,
     });
   }
 
