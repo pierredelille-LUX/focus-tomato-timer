@@ -12,7 +12,7 @@ python3 -m http.server 5173
 
 ## Google 账号同步
 
-应用支持使用 Google Identity Services 的官方登录按钮登录。点击登录按钮后，用户可以选择 Google 账号；登录成功后应用会显示姓名、邮箱和 Google ID，并继续请求 Google Drive `appDataFolder` 权限，用于保存设置和任务记录。这个目录只给本应用使用，用户不会在普通 Drive 文件列表里看到这些数据。
+应用支持使用 Google Identity Services 登录。“选择已保存的 Google 账号”按钮会调用浏览器账号选择提示，让用户从当前浏览器可用的 Google 账号中选择一个；下方也保留 Google 官方登录按钮作为回退。登录成功后应用会显示姓名、邮箱和 Google ID，并继续请求 Google Drive `appDataFolder` 权限，用于保存设置和任务记录。这个目录只给本应用使用，用户不会在普通 Drive 文件列表里看到这些数据。
 
 配置步骤：
 

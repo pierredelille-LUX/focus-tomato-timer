@@ -89,6 +89,7 @@
     accountName: document.querySelector("#accountName"),
     accountEmail: document.querySelector("#accountEmail"),
     accountId: document.querySelector("#accountId"),
+    chooseSavedGoogle: document.querySelector("#chooseSavedGoogle"),
     googleButtonHost: document.querySelector("#googleButtonHost"),
     googleSignIn: document.querySelector("#googleSignIn"),
     syncNow: document.querySelector("#syncNow"),
@@ -110,6 +111,7 @@
     syncTone: "",
     retryCount: 0,
     signInButtonRendered: false,
+    promptFallbackTimer: null,
   };
   let audioContext;
   let tickerId;
@@ -362,6 +364,8 @@
       elements.accountEmail.textContent = "当前仅保存到此浏览器";
       elements.accountId.hidden = true;
       elements.googleButtonHost.hidden = true;
+      elements.chooseSavedGoogle.disabled = true;
+      elements.chooseSavedGoogle.hidden = false;
       elements.googleSignIn.disabled = true;
       elements.googleSignIn.hidden = false;
       elements.googleSignIn.innerHTML =
@@ -380,6 +384,8 @@
       elements.accountEmail.textContent = "正在准备登录组件";
       elements.accountId.hidden = true;
       elements.googleButtonHost.hidden = true;
+      elements.chooseSavedGoogle.disabled = true;
+      elements.chooseSavedGoogle.hidden = false;
       elements.googleSignIn.disabled = true;
       elements.googleSignIn.hidden = false;
       elements.googleSignIn.innerHTML =
@@ -397,6 +403,8 @@
       elements.accountEmail.textContent = "登录后同步到 Google Drive";
       elements.accountId.hidden = true;
       elements.googleButtonHost.hidden = false;
+      elements.chooseSavedGoogle.disabled = false;
+      elements.chooseSavedGoogle.hidden = false;
       elements.googleSignIn.disabled = false;
       elements.googleSignIn.hidden = authState.signInButtonRendered;
       elements.googleSignIn.innerHTML =
@@ -419,6 +427,7 @@
       elements.accountAvatar.textContent = getInitial(authState.user.name || authState.user.email);
     }
     elements.googleButtonHost.hidden = true;
+    elements.chooseSavedGoogle.hidden = true;
     elements.googleSignIn.disabled = authState.syncing;
     elements.googleSignIn.hidden = false;
     elements.googleSignIn.innerHTML =
@@ -491,6 +500,12 @@
         client_id: googleClientId,
         callback: handleCredentialResponse,
         cancel_on_tap_outside: true,
+        auto_select: false,
+        ux_mode: "popup",
+        context: "use",
+        itp_support: true,
+        use_fedcm_for_button: true,
+        button_auto_select: false,
       });
       authState.tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: googleClientId,
@@ -535,7 +550,37 @@
     authState.signInButtonRendered = true;
   }
 
+  function chooseSavedGoogleAccount() {
+    if (!authState.configured || !authState.ready || !window.google?.accounts?.id) {
+      setSyncStatus(authState.configured ? "登录未就绪" : "未配置", "error");
+      return;
+    }
+
+    clearTimeout(authState.promptFallbackTimer);
+    setSyncStatus("选择账号中", "syncing");
+    authState.promptFallbackTimer = setTimeout(() => {
+      if (!authState.user && authState.syncStatus === "选择账号中") {
+        setSyncStatus("使用下方 Google 按钮", "");
+      }
+    }, 4500);
+
+    window.google.accounts.id.prompt((notification) => {
+      const notDisplayed =
+        typeof notification?.isNotDisplayed === "function" && notification.isNotDisplayed();
+      const skipped =
+        typeof notification?.isSkippedMoment === "function" && notification.isSkippedMoment();
+      const dismissed =
+        typeof notification?.isDismissedMoment === "function" && notification.isDismissedMoment();
+
+      if (!authState.user && (notDisplayed || skipped || dismissed)) {
+        clearTimeout(authState.promptFallbackTimer);
+        setSyncStatus("使用下方 Google 按钮", "");
+      }
+    });
+  }
+
   function handleCredentialResponse(response) {
+    clearTimeout(authState.promptFallbackTimer);
     if (!response?.credential) {
       setSyncStatus("登录失败", "error");
       return;
@@ -816,9 +861,13 @@
 
   function signOutGoogle() {
     clearTimeout(syncTimerId);
+    clearTimeout(authState.promptFallbackTimer);
     const token = authState.accessToken;
     if (token && window.google?.accounts?.oauth2) {
       window.google.accounts.oauth2.revoke(token, () => {});
+    }
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.disableAutoSelect();
     }
 
     authState.accessToken = "";
@@ -1154,6 +1203,7 @@
     elements.stopButton.addEventListener("click", () => stopSession("stopped"));
     elements.skipButton.addEventListener("click", skipSession);
     elements.clearHistory.addEventListener("click", clearHistory);
+    elements.chooseSavedGoogle.addEventListener("click", chooseSavedGoogleAccount);
     elements.googleSignIn.addEventListener("click", signInWithGoogle);
     elements.googleSignOut.addEventListener("click", signOutGoogle);
     elements.syncNow.addEventListener("click", () => {
