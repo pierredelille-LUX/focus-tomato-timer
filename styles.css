@@ -372,6 +372,120 @@ h1 {
   line-height: 1.2;
 }
 
+.auth-section {
+  background: color-mix(in srgb, var(--teal), white 94%);
+}
+
+.sync-badge {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.sync-badge.ready {
+  color: var(--teal);
+}
+
+.sync-badge.syncing {
+  color: var(--amber);
+}
+
+.sync-badge.error {
+  color: var(--tomato-dark);
+}
+
+.account-card {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.account-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--teal);
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.account-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.account-copy strong,
+.account-copy span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-copy strong {
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.account-copy span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.sync-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.account-button {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 42px;
+  min-width: 0;
+  padding: 9px 12px;
+}
+
+.sync-actions .text-button {
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.sync-actions .text-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sync-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  font-weight: 700;
+}
+
 .setting-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

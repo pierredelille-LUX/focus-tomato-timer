@@ -116,6 +116,42 @@
           />
         </figure>
 
+        <section class="side-section auth-section">
+          <div class="section-heading split-heading">
+            <span class="heading-inline">
+              <i data-lucide="cloud" aria-hidden="true"></i>
+              <h2>账号同步</h2>
+            </span>
+            <span class="sync-badge" id="syncBadge">未登录</span>
+          </div>
+
+          <div class="account-card">
+            <div class="account-avatar" id="accountAvatar">G</div>
+            <div class="account-copy">
+              <strong id="accountName">本地记录</strong>
+              <span id="accountEmail">登录 Google 后同步设置和任务历史</span>
+            </div>
+          </div>
+
+          <div class="sync-actions">
+            <button class="button button-secondary account-button" id="googleSignIn" type="button">
+              <i data-lucide="log-in" aria-hidden="true"></i>
+              <span>使用 Google 登录</span>
+            </button>
+            <button class="text-button" id="syncNow" type="button" disabled>
+              <i data-lucide="refresh-cw" aria-hidden="true"></i>
+              <span>立即同步</span>
+            </button>
+            <button class="text-button" id="googleSignOut" type="button" hidden>
+              <i data-lucide="log-out" aria-hidden="true"></i>
+              <span>退出</span>
+            </button>
+          </div>
+          <p class="sync-note" id="syncNote">
+            当前保存在此浏览器。配置 Google Client ID 后可同步到 Google Drive 隐藏应用数据。
+          </p>
+        </section>
+
         <section class="side-section">
           <div class="section-heading">
             <i data-lucide="settings-2" aria-hidden="true"></i>
@@ -187,6 +223,8 @@
     </main>
 
     <noscript>这个应用需要启用 JavaScript 才能运行计时器。</noscript>
+    <script src="config.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="app.js"></script>
   </body>
