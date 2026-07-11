@@ -1,4 +1,5 @@
 (() => {
+  const BASE_TITLE = "番茄专注钟";
   const STORAGE_KEY = "focus-tomato-timer:v1";
   const DRIVE_FILE_NAME = "focus-tomato-timer-state.json";
   const GOOGLE_SYNC_SCOPE =
@@ -60,9 +61,16 @@
     skipped: "跳过",
   };
 
+  const modeColors = {
+    work: "#e44d3f",
+    shortBreak: "#0f8b8d",
+    longBreak: "#3f8f5f",
+  };
+
   const elements = {
     body: document.body,
     statusPill: document.querySelector("#statusPill"),
+    favicon: document.querySelector('link[rel="icon"]'),
     modeTabs: [...document.querySelectorAll("[data-mode]")],
     modeLabel: document.querySelector("#modeLabel"),
     timeReadout: document.querySelector("#timeReadout"),
@@ -117,6 +125,9 @@
   let tickerId;
   let autoStartId;
   let syncTimerId;
+  let faviconCanvas;
+  let faviconContext;
+  let lastTabSignature = "";
 
   const state = {
     mode: "work",
@@ -236,6 +247,104 @@
     }
   }
 
+  function updateBrowserTab() {
+    if (state.status === "idle") {
+      document.title = BASE_TITLE;
+      resetTabFavicon();
+      return;
+    }
+
+    const timeText = formatTime(state.remainingSeconds);
+    const statusPrefix = state.status === "paused" ? "暂停 " : "";
+    const modeTitle = modeMeta[state.mode].title;
+    const title = `${statusPrefix}${timeText} · ${modeTitle} · ${BASE_TITLE}`;
+    const signature = `${state.status}:${state.mode}:${state.remainingSeconds}`;
+
+    document.title = title;
+    if (signature !== lastTabSignature) {
+      lastTabSignature = signature;
+      drawTabFavicon(timeText);
+    }
+  }
+
+  function resetTabFavicon() {
+    if (!elements.favicon) {
+      return;
+    }
+
+    elements.favicon.href = "favicon.svg";
+    lastTabSignature = "";
+  }
+
+  function drawTabFavicon(timeText) {
+    if (!elements.favicon || typeof document.createElement !== "function") {
+      return;
+    }
+
+    if (!faviconCanvas) {
+      faviconCanvas = document.createElement("canvas");
+      faviconCanvas.width = 64;
+      faviconCanvas.height = 64;
+      faviconContext = faviconCanvas.getContext("2d");
+    }
+
+    if (!faviconContext) {
+      return;
+    }
+
+    const ctx = faviconContext;
+    const label = formatTabBadgeTime(state.remainingSeconds, timeText);
+    const color = modeColors[state.mode] || modeColors.work;
+
+    ctx.clearRect(0, 0, 64, 64);
+    ctx.fillStyle = "#f4f6f4";
+    roundRect(ctx, 2, 2, 60, 60, 12);
+    ctx.fill();
+
+    ctx.fillStyle = color;
+    roundRect(ctx, 9, 14, 46, 40, 16);
+    ctx.fill();
+
+    ctx.fillStyle = "#3f8f5f";
+    ctx.beginPath();
+    ctx.moveTo(32, 15);
+    ctx.bezierCurveTo(34, 6, 42, 5, 48, 10);
+    ctx.bezierCurveTo(41, 10, 38, 14, 37, 19);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = label.length <= 2 ? "bold 24px system-ui, sans-serif" : "bold 18px system-ui, sans-serif";
+    ctx.fillText(label, 32, 37);
+
+    elements.favicon.href = faviconCanvas.toDataURL("image/png");
+  }
+
+  function formatTabBadgeTime(seconds, fallback) {
+    if (seconds < 60) {
+      return `${Math.max(0, seconds)}s`;
+    }
+
+    const minutes = Math.ceil(seconds / 60);
+    if (minutes < 100) {
+      return `${minutes}m`;
+    }
+
+    return fallback.split(":").slice(0, 2).join(":");
+  }
+
+  function roundRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + width, y, x + width, y + height, radius);
+    ctx.arcTo(x + width, y + height, x, y + height, radius);
+    ctx.arcTo(x, y + height, x, y, radius);
+    ctx.arcTo(x, y, x + width, y, radius);
+    ctx.closePath();
+  }
+
   function renderSettings() {
     elements.workMinutes.value = store.settings.workMinutes;
     elements.shortMinutes.value = store.settings.shortMinutes;
@@ -275,10 +384,7 @@
     }
 
     elements.stopButton.disabled = state.status === "idle";
-    document.title =
-      state.status === "idle"
-        ? "番茄专注钟"
-        : `${formatTime(state.remainingSeconds)} - ${modeMeta[state.mode].title}`;
+    updateBrowserTab();
 
     renderIcons();
   }
@@ -1211,6 +1317,19 @@
         console.error(error);
         setSyncStatus("同步失败", "error");
       });
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (state.status === "running") {
+        state.remainingSeconds = Math.max(0, Math.ceil((state.endAt - Date.now()) / 1000));
+        renderTimer();
+        if (state.remainingSeconds <= 0) {
+          completeSession();
+        }
+        return;
+      }
+
+      updateBrowserTab();
     });
 
     elements.taskInput.addEventListener("input", () => {
